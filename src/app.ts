@@ -1,6 +1,7 @@
 import express, { type Application, type Request, type Response } from "express";
 import CookieParser from "cookie-parser";
 import cors from "cors";
+import { authRoute } from "./modules/auth/auth.route";
 
 const app: Application = express();
 
@@ -19,5 +20,8 @@ app.get("/", (req: Request, res: Response) => {
         author: "Aditta Chakraborty",
     });
 });
+
+app.use("/api/auth", authRoute);
+// app.use("/api/issues", issueRoute);
 
 export default app;
