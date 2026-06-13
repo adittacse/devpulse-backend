@@ -99,6 +99,26 @@ const getAllIssuesFromDB = async (query: { sort?: string; type?: string; status?
     return await addReporterInfo(issues);
 }
 
+const getSingleIssueFromDB = async (id: string) => {
+    const result = await pool.query(`
+            SELECT * FROM issues WHERE id = $1
+        `, [id]);
+
+    if (result.rows.length === 0) {
+        throw new Error("Issue not found!");
+    }
+
+    const issues = await addReporterInfo(result.rows as IIssue[]);
+    
+    const issue = issues[0];
+
+    if (!issue) {
+        throw new Error("Issue not found!");
+    }
+
+    return issue;
+}
+
 const createIssueIntoDB = async (payload: IIssuePayload, reporterId: number) => {
     validateIssuePayload(payload);
     const { title, description, type } = payload;
@@ -120,5 +140,6 @@ const createIssueIntoDB = async (payload: IIssuePayload, reporterId: number) => 
 
 export const issueService = {
     getAllIssuesFromDB,
+    getSingleIssueFromDB,
     createIssueIntoDB,
 }

@@ -36,6 +36,28 @@ const getAllIssues = async (req: Request, res: Response) => {
     }
 }
 
+const getSingleIssue = async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    try {
+        const result = await issueService.getSingleIssueFromDB(id as string);
+
+        return sendResponse(res, {
+            statusCode: 200,
+            success: true,
+            message: "Issue retrieved successfully",
+            data: result,
+        });
+    } catch (error: any) {
+        return sendResponse(res, {
+            statusCode: 500,
+            success: false,
+            message: error.message,
+            error: error,
+        });
+    }
+}
+
 const createIssue = async (req: Request, res: Response) => {
     try {
         const result = await issueService.createIssueIntoDB(req.body, req.user?.id);
@@ -58,5 +80,6 @@ const createIssue = async (req: Request, res: Response) => {
 
 export const issueController = {
     getAllIssues,
+    getSingleIssue,
     createIssue,
 }
