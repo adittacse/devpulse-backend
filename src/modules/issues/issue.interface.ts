@@ -6,6 +6,13 @@ export interface IIssuePayload {
     type: IssueType;
 }
 
+export interface IIssueUpdatePayload {
+    title?: string;
+    description?: string;
+    type?: IssueType;
+    status?: IssueStatus;
+}
+
 export interface IIssue {
     id: number;
     title: string;

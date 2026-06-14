@@ -1,6 +1,8 @@
+import type { JwtPayload } from "jsonwebtoken";
 import { pool } from "../../db";
+import { USER_ROLE } from "../../types";
 import { isValidIssueStatus, isValidIssueType } from "../../utility/validators";
-import type { IIssue, IIssuePayload, IssueWithReporter } from "./issue.interface";
+import type { IIssue, IIssuePayload, IIssueUpdatePayload, IssueWithReporter } from "./issue.interface";
 
 const validateIssuePayload = (payload: IIssuePayload) => {
     const { title, description, type } = payload;
@@ -19,6 +21,30 @@ const validateIssuePayload = (payload: IIssuePayload) => {
 
     if (!isValidIssueType(type)) {
         throw new Error("Type must be bug or feature_request");
+    }
+}
+
+const validateUpdatePayload = (payload: IIssueUpdatePayload) => {
+    const { title, description, type, status } = payload;
+
+    if (!title && !description && !type && !status) {
+        throw new Error("At least one field is required");
+    }
+
+    if (title !== undefined && title.length > 150) {
+        throw new Error("Title must be maximum 150 characters");
+    }
+
+    if (description !== undefined && description.length < 20) {
+        throw new Error("Description must be minimum 20 characters");
+    }
+
+    if (type !== undefined && !isValidIssueType(type)) {
+        throw new Error("Type must be bug or feature_request");
+    }
+
+    if (status !== undefined && !isValidIssueStatus(status)) {
+        throw new Error("Status must be open, in_progress or resolved");
     }
 }
 
@@ -138,8 +164,50 @@ const createIssueIntoDB = async (payload: IIssuePayload, reporterId: number) => 
     return result.rows[0] as IIssue;
 }
 
+const updateIssueIntoDB = async (payload: IIssueUpdatePayload, id: string, user: JwtPayload) => {
+    validateUpdatePayload(payload);
+    const { title, description, type, status } = payload;
+
+    const issueData = await pool.query(`
+            SELECT * FROM issues WHERE id = $1
+        `, [id]);
+
+    if (issueData.rows.length === 0) {
+        throw new Error("Issue not found!");
+    }
+
+    const issue = issueData.rows[0] as IIssue;
+
+    if (user.role === USER_ROLE.contributor) {
+        if (issue.reporter_id !== user.id) {
+            throw new Error("Forbidden access!");
+        }
+
+        if (issue.status !== "open") {
+            throw new Error("Only open issue can be edited by contributor");
+        }
+
+        if (payload.status !== undefined) {
+            throw new Error("Contributor cannot update issue status");
+        }
+    }
+
+    const result = await pool.query(`
+            UPDATE issues SET
+            title = COALESCE($1, title),
+            description = COALESCE($2, description),
+            type = COALESCE($3, type),
+            status = COALESCE($4, status),
+            updated_at = NOW()
+            WHERE id = $5 RETURNING *
+        `, [title, description, type, status, id]);
+
+    return result.rows[0] as IIssue;
+}
+
 export const issueService = {
     getAllIssuesFromDB,
     getSingleIssueFromDB,
     createIssueIntoDB,
+    updateIssueIntoDB,
 }
