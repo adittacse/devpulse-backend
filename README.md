@@ -5,7 +5,7 @@ DevPulse is a backend REST API for an internal software team issue tracking syst
 ## Live URL
 
 ```txt
-link will add here
+https://devpulse-backend-rouge.vercel.app
 ```
 
 ## Features
